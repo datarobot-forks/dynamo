@@ -10,7 +10,6 @@ export PREFILL_ENGINE_ARGS=${PREFILL_ENGINE_ARGS:-"engine_configs/prefill.yaml"}
 export DECODE_ENGINE_ARGS=${DECODE_ENGINE_ARGS:-"engine_configs/decode.yaml"}
 export PREFILL_CUDA_VISIBLE_DEVICES=${PREFILL_CUDA_VISIBLE_DEVICES:-"0"}
 export DECODE_CUDA_VISIBLE_DEVICES=${DECODE_CUDA_VISIBLE_DEVICES:-"1"}
-export ENABLE_KV_EVENTS=${ENABLE_KV_EVENTS:-"true"}
 
 # Setup cleanup trap
 cleanup() {
@@ -24,25 +23,17 @@ trap cleanup EXIT INT TERM
 # run clear_namespace
 python3 utils/clear_namespace.py --namespace dynamo
 
-# Build frontend extra args
-FRONTEND_EXTRA_ARGS=()
-if [[ "${ENABLE_KV_EVENTS,,}" == "false" ]]; then
-  FRONTEND_EXTRA_ARGS+=(--no-kv-events)
-fi
-
 # run frontend
-python3 -m dynamo.frontend --router-mode kv --http-port 8000 "${FRONTEND_EXTRA_ARGS[@]}" &
+python3 -m dynamo.frontend --router-mode kv --http-port 8000 &
 DYNAMO_PID=$!
 
 
 EXTRA_PREFILL_ARGS=()
 EXTRA_DECODE_ARGS=()
-if [[ "${ENABLE_KV_EVENTS,,}" != "false" ]]; then
-  if [ "$DISAGGREGATION_STRATEGY" == "prefill_first" ]; then
-    EXTRA_PREFILL_ARGS+=(--publish-events-and-metrics)
-  else
-    EXTRA_DECODE_ARGS+=(--publish-events-and-metrics)
-  fi
+if [ "$DISAGGREGATION_STRATEGY" == "prefill_first" ]; then
+  EXTRA_PREFILL_ARGS+=(--publish-events-and-metrics)
+else
+  EXTRA_DECODE_ARGS+=(--publish-events-and-metrics)
 fi
 
 # run prefill worker
