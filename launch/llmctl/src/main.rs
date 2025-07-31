@@ -350,12 +350,16 @@ fn endpoint_from_name(
         anyhow::bail!("Endpoint name '{}' is too long. Format should be 'component.endpoint' or 'namespace.component.endpoint'", endpoint_name);
     }
 
-    // TODO previous version sometime hardcoded this to "http", so maybe adjust
-    let component_name = parts[parts.len() - 2].to_string();
-    let endpoint_name = parts[parts.len() - 1].to_string();
+    let (namespace_to_use, component_name, endpoint_name) = if parts.len() == 3 {
+        // namespace.component.endpoint format - use the namespace from the endpoint name
+        (parts[0].to_string(), parts[1].to_string(), parts[2].to_string())
+    } else {
+        // component.endpoint format - use the default namespace
+        (namespace.to_string(), parts[0].to_string(), parts[1].to_string())
+    };
 
     let component = distributed
-        .namespace(namespace)?
+        .namespace(&namespace_to_use)?
         .component(component_name)?;
 
     Ok(component.endpoint(endpoint_name))

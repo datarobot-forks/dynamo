@@ -93,6 +93,9 @@ impl Backend {
             Some(TokenizerKind::HfTokenizerJson(file)) => {
                 HfTokenizer::from_file(file).map_err(Error::msg)?
             }
+            Some(TokenizerKind::HfTokenizerConfigJson(file)) => {
+                HfTokenizer::from_file(file).map_err(Error::msg)?
+            }
             Some(TokenizerKind::GGUF(t)) => *t.clone(),
             None => {
                 return Ok(Arc::new(Self {
