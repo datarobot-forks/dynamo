@@ -205,7 +205,7 @@ async fn handle_command(runtime: Runtime, namespace: String, command: Commands) 
                 }
                 HttpCommands::Remove { model_type } => {
                     let (model_type, name) = model_type.into_parts();
-                    remove_model(&distributed, model_type, &name).await?;
+                    remove_model(&distributed, namespace.clone(), model_type, &name).await?;
                 }
             }
         }
@@ -309,6 +309,7 @@ async fn list_models(
 
 async fn remove_model(
     distributed: &DistributedRuntime,
+    namespace: String,
     model_type: ModelType,
     model_name: &str,
 ) -> Result<()> {
@@ -325,10 +326,13 @@ async fn remove_model(
     let active_instances = watcher.entries_for_model(model_name).await?;
     for entry in active_instances
         .into_iter()
-        .filter(|entry| entry.model_type == model_type)
+        .filter(|entry| entry.model_type == model_type && entry.endpoint.namespace == namespace)
     {
         let network_name = ModelNetworkName::from_entry(&entry, 0);
-        tracing::debug!("deleting key: {network_name}");
+        tracing::debug!(
+            "deleting key for model in namespace {}: {network_name}",
+            namespace
+        );
         etcd_client
             .kv_delete(network_name.to_string(), None)
             .await?;
