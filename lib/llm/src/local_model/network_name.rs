@@ -3,7 +3,7 @@
 
 use anyhow::Context as _;
 
-use crate::discovery::{ModelEntry, MODEL_ROOT_PATH};
+use crate::discovery::{model_root_path, ModelEntry};
 use dynamo_runtime::component::{self, Instance};
 use dynamo_runtime::slug::Slug;
 use dynamo_runtime::transports::etcd;
@@ -17,7 +17,7 @@ impl ModelNetworkName {
     /// It looks like this:
     /// ns.cp.ep-694d967ca5efd804
     fn from_parts(namespace: &str, component: &str, endpoint: &str, lease_id: i64) -> Self {
-        let model_root = MODEL_ROOT_PATH;
+        let model_root = model_root_path();
         let slug = Slug::slugify(&format!("{namespace}.{component}.{endpoint}-{lease_id:x}"));
         ModelNetworkName(format!("{model_root}/{slug}"))
     }

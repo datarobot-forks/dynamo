@@ -5,7 +5,7 @@ use std::pin::Pin;
 
 use crate::{
     backend::{Backend, ExecutionContext},
-    discovery::{ModelManager, ModelWatcher, MODEL_ROOT_PATH},
+    discovery::{model_root_path, ModelManager, ModelWatcher},
     engines::StreamingEngineAdapter,
     entrypoint::EngineConfig,
     model_card::ModelDeploymentCard,
@@ -64,7 +64,7 @@ pub async fn prepare_engine(
                 dynamo_runtime::pipeline::RouterMode::RoundRobin,
                 None,
             ));
-            let models_watcher = etcd_client.kv_get_and_watch_prefix(MODEL_ROOT_PATH).await?;
+            let models_watcher = etcd_client.kv_get_and_watch_prefix(model_root_path()).await?;
             let (_prefix, _watcher, receiver) = models_watcher.dissolve();
 
             let inner_watch_obj = watch_obj.clone();

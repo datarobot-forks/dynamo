@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use crate::{
-    discovery::{ModelManager, ModelWatcher, MODEL_ROOT_PATH},
+    discovery::{model_root_path, ModelManager, ModelWatcher},
     engines::StreamingEngineAdapter,
     entrypoint::{input::common, EngineConfig},
     http::service::service_v2,
@@ -40,7 +40,7 @@ pub async fn run(runtime: Runtime, engine_config: EngineConfig) -> anyhow::Resul
                         distributed_runtime,
                         http_service.state().manager_clone(),
                         etcd_client.clone(),
-                        MODEL_ROOT_PATH,
+                        model_root_path(),
                         router_config.router_mode,
                         Some(router_config.kv_router_config.clone()),
                     )
