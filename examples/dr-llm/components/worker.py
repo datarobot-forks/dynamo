@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 @service(
     dynamo={
-        "namespace": "dynamo",
+        "namespace": os.getenv("DYNAMO_NAMESPACE", "dr-dynamo"),
     },
     resources={"gpu": 1, "cpu": "10", "memory": "20Gi"},
     workers=1,

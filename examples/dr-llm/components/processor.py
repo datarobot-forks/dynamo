@@ -16,6 +16,7 @@
 import asyncio
 import logging
 import uuid
+import os
 from enum import Enum
 from typing import Any, AsyncIterator, Dict, List, Tuple, Union
 
@@ -45,7 +46,7 @@ class RequestType(Enum):
 
 @service(
     dynamo={
-        "namespace": "dynamo",
+        "namespace": os.getenv("DYNAMO_NAMESPACE", "dr-dynamo"),
     },
     resources={"cpu": "10", "memory": "20Gi"},
     workers=1,

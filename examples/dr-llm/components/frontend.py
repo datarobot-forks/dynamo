@@ -63,7 +63,7 @@ class FrontendConfig(BaseModel):
 # todo this should be called ApiServer
 @service(
     dynamo={
-        "namespace": "dynamo",
+        "namespace": os.getenv("DYNAMO_NAMESPACE", "dr-dynamo"),
     },
     resources={"cpu": "1", "memory": "2Gi"},
     workers=1,

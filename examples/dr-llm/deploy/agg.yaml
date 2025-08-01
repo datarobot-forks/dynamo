@@ -15,14 +15,18 @@
 apiVersion: nvidia.com/v1alpha1
 kind: DynamoGraphDeployment
 metadata:
-  name: llm-agg
+  name: llm-agg5
 spec:
   envs:
+    - name: DYN_NAMESPACE
+      value: llm-agg5
+    - name: DYNAMO_NAMESPACE
+      value: llm-agg5
     - name: DYN_DEPLOYMENT_CONFIG
-      value: '{"Common":{"model":"deepseek-ai/DeepSeek-R1-Distill-Llama-8B","block-size":64,"max-model-len":16384},"Frontend":{"served_model_name":"deepseek-ai/DeepSeek-R1-Distill-Llama-8B","endpoint":"dynamo.Processor.chat/completions","port":8000},"Processor":{"router":"round-robin","router-num-threads":4,"common-configs":["model","block-size","max-model-len"]},"VllmWorker":{"enforce-eager":true,"max-num-batched-tokens":16384,"enable-prefix-caching":true,"ServiceArgs":{"workers":1,"resources":{"gpu":"1"}},"common-configs":["model","block-size","max-model-len"]},"Planner":{"environment":"kubernetes","no-operation":true}}'
+      value: '{"Common":{"model":"deepseek-ai/DeepSeek-R1-Distill-Llama-8B","block-size":64,"max-model-len":16384},"Frontend":{"served_model_name":"deepseek-ai/DeepSeek-R1-Distill-Llama-8B","endpoint":"llm-agg5.Processor.chat/completions","port":8000},"Processor":{"router":"round-robin","router-num-threads":4,"common-configs":["model","block-size","max-model-len"]},"VllmWorker":{"enforce-eager":true,"max-num-batched-tokens":16384,"enable-prefix-caching":true,"ServiceArgs":{"workers":1,"resources":{"gpu":"1"}},"common-configs":["model","block-size","max-model-len"]},"Planner":{"environment":"kubernetes","no-operation":true}}'
   services:
     Frontend:
-      dynamoNamespace: llm-agg
+      dynamoNamespace: llm-agg5
       componentType: main
       replicas: 1
       resources:
@@ -34,7 +38,7 @@ spec:
           memory: "2Gi"
       extraPodSpec:
         mainContainer:
-          image: nvcr.io/nvidia/ai-dynamo/vllm-runtime:0.3.1
+          image: acrcidg000.azurecr.io/ai-dynamo/vllm-runtime:0.3.2-drew-1
           workingDir: /workspace/examples/llm
           args:
             - dynamo
@@ -47,7 +51,7 @@ spec:
             - --service-name
             - Frontend
     Processor:
-      dynamoNamespace: llm-agg
+      dynamoNamespace: llm-agg5
       componentType: worker
       replicas: 1
       resources:
@@ -59,7 +63,7 @@ spec:
           memory: "2Gi"
       extraPodSpec:
         mainContainer:
-          image: nvcr.io/nvidia/ai-dynamo/vllm-runtime:0.3.1
+          image: acrcidg000.azurecr.io/ai-dynamo/vllm-runtime:0.3.2-drew-1
           workingDir: /workspace/examples/llm
           args:
             - dynamo
@@ -73,7 +77,7 @@ spec:
             - Processor
     VllmWorker:
       envFromSecret: hf-token-secret
-      dynamoNamespace: llm-agg
+      dynamoNamespace: llm-agg5
       replicas: 1
       resources:
         requests:
@@ -86,7 +90,7 @@ spec:
           gpu: "1"
       extraPodSpec:
         mainContainer:
-          image: nvcr.io/nvidia/ai-dynamo/vllm-runtime:0.3.1
+          image: acrcidg000.azurecr.io/ai-dynamo/vllm-runtime:0.3.2-drew-1
           workingDir: /workspace/examples/llm
           args:
             - dynamo
