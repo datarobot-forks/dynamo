@@ -205,7 +205,7 @@ async fn handle_command(runtime: Runtime, namespace: String, command: Commands) 
                 }
                 HttpCommands::Remove { model_type } => {
                     let (model_type, name) = model_type.into_parts();
-                    remove_model(&distributed, model_type, &name).await?;
+                    remove_model(&distributed, namespace.clone(), model_type, &name).await?;
                 }
             }
         }
@@ -309,6 +309,7 @@ async fn list_models(
 
 async fn remove_model(
     distributed: &DistributedRuntime,
+    namespace: String,
     model_type: ModelType,
     model_name: &str,
 ) -> Result<()> {
@@ -325,10 +326,13 @@ async fn remove_model(
     let active_instances = watcher.entries_for_model(model_name).await?;
     for entry in active_instances
         .into_iter()
-        .filter(|entry| entry.model_type == model_type)
+        .filter(|entry| entry.model_type == model_type && entry.endpoint.namespace == namespace)
     {
         let network_name = ModelNetworkName::from_entry(&entry, 0);
-        tracing::debug!("deleting key: {network_name}");
+        tracing::debug!(
+            "deleting key for model in namespace {}: {network_name}",
+            namespace
+        );
         etcd_client
             .kv_delete(network_name.to_string(), None)
             .await?;
@@ -350,12 +354,16 @@ fn endpoint_from_name(
         anyhow::bail!("Endpoint name '{}' is too long. Format should be 'component.endpoint' or 'namespace.component.endpoint'", endpoint_name);
     }
 
-    // TODO previous version sometime hardcoded this to "http", so maybe adjust
-    let component_name = parts[parts.len() - 2].to_string();
-    let endpoint_name = parts[parts.len() - 1].to_string();
+    let (namespace_to_use, component_name, endpoint_name) = if parts.len() == 3 {
+        // namespace.component.endpoint format - use the namespace from the endpoint name
+        (parts[0].to_string(), parts[1].to_string(), parts[2].to_string())
+    } else {
+        // component.endpoint format - use the default namespace
+        (namespace.to_string(), parts[0].to_string(), parts[1].to_string())
+    };
 
     let component = distributed
-        .namespace(namespace)?
+        .namespace(&namespace_to_use)?
         .component(component_name)?;
 
     Ok(component.endpoint(endpoint_name))

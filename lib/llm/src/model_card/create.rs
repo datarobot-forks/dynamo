@@ -172,9 +172,25 @@ impl TokenizerKind {
     }
 
     async fn try_is_hf_repo(repo: &str) -> anyhow::Result<Self> {
-        Ok(Self::HfTokenizerJson(
-            check_for_file(repo, "tokenizer.json").await?,
-        ))
+        // Try fast tokenizer first (tokenizer.json)
+        if let Ok(tokenizer_json) = check_for_file(repo, "tokenizer.json").await {
+            return Ok(Self::HfTokenizerJson(tokenizer_json));
+        }
+        
+        // Fall back to slow tokenizer (tokenizer_config.json + vocab.json + merges.txt)
+        if let Ok(tokenizer_config) = check_for_file(repo, "tokenizer_config.json").await {
+            // Verify required files for slow tokenizer exist
+            let _ = check_for_file(repo, "vocab.json").await
+                .with_context(|| "slow tokenizer requires vocab.json")?;
+            
+            // merges.txt is required for BPE tokenizers but not for other types
+            // Check if it exists but don't fail if it's missing
+            let _ = check_for_file(repo, "merges.txt").await;
+            
+            return Ok(Self::HfTokenizerConfigJson(tokenizer_config));
+        }
+        
+        anyhow::bail!("No valid tokenizer files found in repo {}", repo)
     }
 }
 

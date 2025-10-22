@@ -3,7 +3,7 @@
 
 use clap::Parser;
 
-use dynamo_llm::discovery::{ModelWatcher, MODEL_ROOT_PATH};
+use dynamo_llm::discovery::{model_root_path, ModelWatcher};
 use dynamo_llm::http::service::service_v2::HttpService;
 use dynamo_runtime::{
     logging, pipeline::RouterMode, transports::etcd::PrefixWatcher, DistributedRuntime, Result,
@@ -60,7 +60,7 @@ async fn app(runtime: Runtime) -> Result<()> {
 
     if let Some(etcd_client) = distributed.etcd_client() {
         let models_watcher: PrefixWatcher =
-            etcd_client.kv_get_and_watch_prefix(MODEL_ROOT_PATH).await?;
+            etcd_client.kv_get_and_watch_prefix(model_root_path()).await?;
 
         let (_prefix, _watcher, receiver) = models_watcher.dissolve();
         tokio::spawn(async move {

@@ -15,7 +15,7 @@
 
 use std::sync::Arc;
 
-use super::tokcfg::{raise_exception, strftime_now, tojson, ChatTemplate};
+use super::tokcfg::{raise_exception, strftime_now, tojson, ChatTemplate, ChatTemplateValue};
 use super::{ContextMixins, HfTokenizerConfigJsonFormatter, JinjaEnvironment};
 use either::Either;
 use minijinja::Environment;
@@ -42,9 +42,19 @@ impl HfTokenizerConfigJsonFormatter {
     pub fn new(config: ChatTemplate, mixins: ContextMixins) -> anyhow::Result<Self> {
         let mut env = JinjaEnvironment::default().env();
 
-        let chat_template = config.chat_template.as_ref().ok_or(anyhow::anyhow!(
-            "chat_template field is required in the tokenizer_config.json file"
-        ))?;
+        // For older models without chat_template, provide a basic default template
+        let chat_template = match config.chat_template.as_ref() {
+            Some(template) => template,
+            None => {
+                tracing::warn!("Model does not have a chat_template field. Using basic default template for compatibility with older models.");
+                // Create a basic template that just concatenates messages
+                let default_template = ChatTemplateValue(Either::Left(
+                    "{% for message in messages %}{{ message.content }}{% endfor %}".to_string()
+                ));
+                // We need to work with the existing template, so we'll handle this case differently
+                return Self::new_with_default_template(config, mixins);
+            }
+        };
 
         // add pycompat
         // todo: should we use this: minijinja_contrib::add_to_environment(&mut env);
@@ -96,6 +106,33 @@ impl HfTokenizerConfigJsonFormatter {
             config,
             mixins: Arc::new(mixins),
             supports_add_generation_prompt: supports_add_generation_prompt.unwrap_or(false),
+        })
+    }
+
+    /// Create a formatter with a default template for older models without chat_template
+    fn new_with_default_template(config: ChatTemplate, mixins: ContextMixins) -> anyhow::Result<Self> {
+        let mut env = JinjaEnvironment::default().env();
+
+        // add pycompat
+        env.set_unknown_method_callback(minijinja_contrib::pycompat::unknown_method_callback);
+
+        env.add_filter("tojson", tojson);
+
+        env.add_function("raise_exception", raise_exception);
+        env.add_function("strftime_now", strftime_now);
+
+        // Use a simple default template that just concatenates message content
+        // This is appropriate for older models that don't have sophisticated chat templates
+        let default_template = "{% for message in messages %}{{ message.content }}{% endfor %}";
+        
+        env.add_template_owned("default", default_template.to_string())?;
+        env.add_template_owned("tool_use", default_template.to_string())?;
+
+        Ok(HfTokenizerConfigJsonFormatter {
+            env,
+            config,
+            mixins: Arc::new(mixins),
+            supports_add_generation_prompt: false, // Older models typically don't support this
         })
     }
 }

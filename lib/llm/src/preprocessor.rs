@@ -116,6 +116,7 @@ impl OpenAIPreprocessor {
 
         let tokenizer = match &mdc.tokenizer {
             Some(TokenizerKind::HfTokenizerJson(file)) => HuggingFaceTokenizer::from_file(file)?,
+            Some(TokenizerKind::HfTokenizerConfigJson(file)) => HuggingFaceTokenizer::from_file(file)?,
             Some(TokenizerKind::GGUF(tokenizer)) => {
                 HuggingFaceTokenizer::from_tokenizer(*tokenizer.clone())
             }

@@ -29,7 +29,7 @@ use crate::{
     protocols::openai::embeddings::{NvCreateEmbeddingRequest, NvCreateEmbeddingResponse},
 };
 
-use super::{ModelEntry, ModelManager, MODEL_ROOT_PATH};
+use super::{model_root_path, ModelEntry, ModelManager};
 
 pub struct ModelWatcher {
     manager: Arc<ModelManager>,
@@ -347,7 +347,7 @@ impl ModelWatcher {
         let Some(etcd_client) = self.drt.etcd_client() else {
             anyhow::bail!("all_entries: Missing etcd client");
         };
-        let kvs = etcd_client.kv_get_prefix(MODEL_ROOT_PATH).await?;
+        let kvs = etcd_client.kv_get_prefix(model_root_path()).await?;
         let mut entries = Vec::with_capacity(kvs.len());
         for kv in kvs {
             let model_entry = match serde_json::from_slice::<ModelEntry>(kv.value()) {

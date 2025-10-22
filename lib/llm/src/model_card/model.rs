@@ -43,6 +43,7 @@ pub enum ModelInfoType {
 #[serde(rename_all = "snake_case")]
 pub enum TokenizerKind {
     HfTokenizerJson(String),
+    HfTokenizerConfigJson(String),
     GGUF(Box<HfTokenizer>),
 }
 
@@ -209,6 +210,9 @@ impl ModelDeploymentCard {
     pub fn tokenizer_hf(&self) -> anyhow::Result<HfTokenizer> {
         match &self.tokenizer {
             Some(TokenizerKind::HfTokenizerJson(file)) => {
+                HfTokenizer::from_file(file).map_err(anyhow::Error::msg)
+            }
+            Some(TokenizerKind::HfTokenizerConfigJson(file)) => {
                 HfTokenizer::from_file(file).map_err(anyhow::Error::msg)
             }
             Some(TokenizerKind::GGUF(t)) => Ok(*t.clone()),
